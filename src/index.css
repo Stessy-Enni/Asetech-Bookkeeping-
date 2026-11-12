@@ -1,0 +1,79 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #f8fafc;
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  html.dark body {
+    background-color: #0b0f19;
+    color: #f8fafc;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-feature-settings: "tnum" 1;
+  }
+}
+
+/* Print Media Queries for PDF Export & Printing */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  /* Hide everything except the print-friendly report container */
+  header, footer, nav, button, .print\:hidden {
+    display: none !important;
+  }
+
+  /* Make modal take up full page cleanly */
+  .fixed.inset-0 {
+    position: absolute !important;
+    inset: 0 !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+  }
+
+  .max-w-4xl {
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .shadow-2xl, .shadow-xl, .shadow-lg, .shadow-xs {
+    box-shadow: none !important;
+  }
+
+  .border {
+    border-color: #e2e8f0 !important;
+  }
+
+  /* Force light mode styling for clean paper printout */
+  .dark\:bg-slate-900, .dark\:bg-slate-950, .dark\:bg-slate-800, .dark\:bg-slate-800\/60 {
+    background-color: #ffffff !important;
+  }
+
+  .dark\:text-white, .dark\:text-slate-100, .dark\:text-slate-200, .dark\:text-slate-300, .dark\:text-slate-400 {
+    color: #0f172a !important;
+  }
+
+  /* Unhide print-only document header info */
+  .print\:block {
+    display: block !important;
+  }
+}
