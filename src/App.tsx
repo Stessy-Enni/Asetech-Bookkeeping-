@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Header, AppTab } from './components/Header';
+import { Sidebar } from './components/Sidebar';
 import { MetricCards } from './components/MetricCards';
 import { MonthlySummaryCards } from './components/MonthlySummaryCards';
 import { FinancialCharts } from './components/FinancialCharts';
@@ -16,6 +17,7 @@ import { FinancialReportModal } from './components/FinancialReportModal';
 import { SettingsView } from './components/SettingsView';
 import { CustomCurrencyModal } from './components/CustomCurrencyModal';
 import { EvaluationSummaryModal } from './components/EvaluationSummaryModal';
+import { AIChatDrawer } from './components/AIChatDrawer';
 import { INITIAL_TRANSACTIONS, BUSINESS_PRESETS } from './data/defaultTransactions';
 import { Transaction, BusinessPreset, FilterCriteria, CurrencyConfig, SUPPORTED_CURRENCIES, BusinessProfile } from './types';
 import {
@@ -40,6 +42,25 @@ const STORAGE_KEYS = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('fd_sidebar_collapsed') === 'true';
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('fd_sidebar_collapsed', String(isSidebarCollapsed));
+      } catch {}
+    }
+  }, [isSidebarCollapsed]);
 
   // Customizable App Name and Icon
   const [appName, setAppName] = useState<string>(() => {
@@ -63,6 +84,139 @@ export default function App() {
     }
     return 'AB';
   });
+
+  // Owner-customized image logo (fetched from server; clients see it but cannot upload/modify)
+  const [appLogoUrl, setAppLogoUrl] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('fd_app_logo_url');
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+  const [appLogoFit, setAppLogoFit] = useState<'cover' | 'contain'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('fd_app_logo_fit') === 'contain' ? 'contain' : 'cover';
+      } catch {
+        return 'cover';
+      }
+    }
+    return 'cover';
+  });
+  const [ownerToken, setOwnerToken] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return sessionStorage.getItem('fd_owner_token');
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+  const [hasOwnerPasscode, setHasOwnerPasscode] = useState<boolean>(false);
+  const [envManagedPasscode, setEnvManagedPasscode] = useState<boolean>(false);
+  const [autoOpenOwnerUnlock, setAutoOpenOwnerUnlock] = useState<boolean>(false);
+
+  useEffect(() => {
+    let active = true;
+    const syncBrandingAndSession = async () => {
+      try {
+        const res = await fetch('/api/branding');
+        if (res.ok && active) {
+          const data = await res.json();
+          setAppLogoUrl(data.appLogoDataUrl ?? null);
+          setAppLogoFit(data.appLogoFit === 'contain' ? 'contain' : 'cover');
+          setHasOwnerPasscode(Boolean(data.hasOwnerPasscode));
+          setEnvManagedPasscode(Boolean(data.envManaged));
+          try {
+            if (data.appLogoDataUrl) {
+              localStorage.setItem('fd_app_logo_url', data.appLogoDataUrl);
+            } else {
+              localStorage.removeItem('fd_app_logo_url');
+            }
+            localStorage.setItem('fd_app_logo_fit', data.appLogoFit === 'contain' ? 'contain' : 'cover');
+          } catch {}
+        }
+      } catch (err) {
+        console.warn('Could not fetch server branding:', err);
+      }
+
+      if (ownerToken) {
+        try {
+          const verifyRes = await fetch('/api/owner/verify-token', {
+            method: 'POST',
+            headers: { 'x-owner-token': ownerToken }
+          });
+          if (!verifyRes.ok && active) {
+            setOwnerToken(null);
+            sessionStorage.removeItem('fd_owner_token');
+          }
+        } catch {}
+      }
+
+      if (typeof window !== 'undefined' && active) {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('owner') === '1') {
+          setActiveTab('settings');
+          if (!ownerToken) {
+            setAutoOpenOwnerUnlock(true);
+          }
+        }
+      }
+    };
+    syncBrandingAndSession();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleUnlockOwner = (token: string) => {
+    setOwnerToken(token);
+    setHasOwnerPasscode(true);
+    try {
+      sessionStorage.setItem('fd_owner_token', token);
+    } catch {}
+    showToast('Owner Access unlocked');
+  };
+
+  const handleLockOwner = async () => {
+    const current = ownerToken;
+    setOwnerToken(null);
+    try {
+      sessionStorage.removeItem('fd_owner_token');
+    } catch {}
+    if (current) {
+      try {
+        await fetch('/api/owner/lock', {
+          method: 'POST',
+          headers: { 'x-owner-token': current }
+        });
+      } catch {}
+    }
+    showToast('Locked to Client View');
+  };
+
+  useEffect(() => {
+    if (!ownerToken && (activeTab === 'json' || activeTab === 'schema')) {
+      setActiveTab('dashboard');
+    }
+  }, [ownerToken, activeTab]);
+
+  const handleLogoUpdated = (logoUrl: string | null, fit: 'cover' | 'contain') => {
+    setAppLogoUrl(logoUrl);
+    setAppLogoFit(fit);
+    try {
+      if (logoUrl) {
+        localStorage.setItem('fd_app_logo_url', logoUrl);
+      } else {
+        localStorage.removeItem('fd_app_logo_url');
+      }
+      localStorage.setItem('fd_app_logo_fit', fit);
+    } catch {}
+  };
 
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile>(() => {
     if (typeof window !== 'undefined') {
@@ -536,21 +690,37 @@ export default function App() {
   }, [inspectingTransaction, anomalyMap]);
 
   return (
-    <div className="min-h-screen bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
-      {/* Top Bar Contract (3 zones) */}
-      <Header
+    <div className="min-h-screen bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex font-sans transition-colors duration-200">
+      {/* Collapsible Left Sidebar with Logo, App Name & Menus */}
+      <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onExportClick={() => setIsExportModalOpen(true)}
-        transactionCount={transactions.length}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={() => setIsDarkMode(prev => !prev)}
         appName={appName}
         appIcon={appIcon}
+        appLogoUrl={appLogoUrl}
+        appLogoFit={appLogoFit}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        isOwnerUnlocked={Boolean(ownerToken)}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+      {/* Right Workspace Column */}
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
+        {/* Streamlined Top Workspace Bar */}
+        <Header
+          activeTab={activeTab}
+          onExportClick={() => setIsExportModalOpen(true)}
+          transactionCount={transactions.length}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={() => setIsDarkMode(prev => !prev)}
+          onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
+          appName={appName}
+        />
+
+        {/* Main Container */}
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Archetype, Currency, CSV Upload & Generator Toolbar (shown on dashboard & analytics) */}
         {activeTab !== 'settings' && (
           <PresetSelector
@@ -679,8 +849,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 4: JSON Dataset View */}
-        {activeTab === 'json' && (
+        {/* Tab 4: JSON Dataset View (Owner Only) */}
+        {activeTab === 'json' && ownerToken && (
           <div className="space-y-4">
             <JsonViewer
               transactions={transactions}
@@ -691,8 +861,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 5: Schema & API Specs */}
-        {activeTab === 'schema' && (
+        {/* Tab 5: Schema & API Specs (Owner Only) */}
+        {activeTab === 'schema' && ownerToken && (
           <div className="space-y-4">
             <SchemaDocs />
           </div>
@@ -722,6 +892,16 @@ export default function App() {
             onDeleteCategory={handleDeleteCategory}
             currentTransactions={transactions}
             onOpenEvalModal={() => setIsEvalModalOpen(true)}
+            appLogoUrl={appLogoUrl}
+            appLogoFit={appLogoFit}
+            ownerToken={ownerToken}
+            hasOwnerPasscode={hasOwnerPasscode}
+            envManagedPasscode={envManagedPasscode}
+            onUnlockOwner={handleUnlockOwner}
+            onLockOwner={handleLockOwner}
+            onLogoUpdated={handleLogoUpdated}
+            autoOpenOwnerUnlock={autoOpenOwnerUnlock}
+            onDismissAutoOpenOwnerUnlock={() => setAutoOpenOwnerUnlock(false)}
           />
         )}
       </main>
@@ -745,6 +925,7 @@ export default function App() {
           <span>{anomalyMap.size} unusual flagged</span>
         </div>
       </footer>
+      </div>
 
       {/* Modals */}
       <CustomCurrencyModal
@@ -782,6 +963,9 @@ export default function App() {
         currency={selectedCurrency}
         isFiltered={isFiltered}
         businessProfile={businessProfile}
+        appLogoUrl={appLogoUrl}
+        appLogoFit={appLogoFit}
+        appName={appName}
       />
 
       <ExportModal
@@ -802,6 +986,12 @@ export default function App() {
       <EvaluationSummaryModal
         isOpen={isEvalModalOpen}
         onClose={() => setIsEvalModalOpen(false)}
+        appName={appName}
+      />
+
+      <AIChatDrawer
+        transactions={transactions}
+        currency={selectedCurrency}
         appName={appName}
       />
 

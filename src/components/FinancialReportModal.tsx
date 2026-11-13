@@ -28,6 +28,9 @@ interface FinancialReportModalProps {
   currency: CurrencyConfig;
   isFiltered: boolean;
   businessProfile?: BusinessProfile;
+  appLogoUrl?: string | null;
+  appLogoFit?: 'cover' | 'contain';
+  appName?: string;
 }
 
 type ReportTab = 'summary' | 'categories' | 'velocity' | 'rawText';
@@ -39,7 +42,10 @@ export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
   allTransactions,
   currency,
   isFiltered,
-  businessProfile
+  businessProfile,
+  appLogoUrl,
+  appLogoFit = 'cover',
+  appName
 }) => {
   const [activeTab, setActiveTab] = useState<ReportTab>('summary');
   const [useAllData, setUseAllData] = useState<boolean>(false);
@@ -80,9 +86,19 @@ export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
         {/* Header */}
         <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800/80 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 flex items-center justify-center shadow-xs">
-              <FileText className="w-4 h-4" />
-            </div>
+            {appLogoUrl ? (
+              <div className="w-8 h-8 rounded-lg overflow-hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-xs shrink-0">
+                <img
+                  src={appLogoUrl}
+                  alt={appName || 'App Logo'}
+                  className={`w-full h-full ${appLogoFit === 'contain' ? 'object-contain p-0.5' : 'object-cover'}`}
+                />
+              </div>
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 flex items-center justify-center shadow-xs">
+                <FileText className="w-4 h-4" />
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Settings, Save, RotateCcw, Check, Sparkles, Shield, Database, Palette, Building2, Briefcase, FileText, Tags, PlusCircle, BookOpen } from 'lucide-react';
 import { CurrencyConfig, SUPPORTED_CURRENCIES, BusinessProfile, BusinessPreset, Transaction } from '../types';
+import { OwnerLogoControl } from './OwnerLogoControl';
 
 interface SettingsViewProps {
   appName: string;
@@ -24,6 +25,16 @@ interface SettingsViewProps {
   onDeleteCategory: (categoryName: string) => void;
   currentTransactions: Transaction[];
   onOpenEvalModal: () => void;
+  appLogoUrl: string | null;
+  appLogoFit: 'cover' | 'contain';
+  ownerToken: string | null;
+  hasOwnerPasscode: boolean;
+  envManagedPasscode: boolean;
+  onUnlockOwner: (token: string) => void;
+  onLockOwner: () => void;
+  onLogoUpdated: (logoUrl: string | null, fit: 'cover' | 'contain') => void;
+  autoOpenOwnerUnlock?: boolean;
+  onDismissAutoOpenOwnerUnlock?: () => void;
 }
 
 const AVAILABLE_ICONS = ['AB', 'BK', 'FS', '💼', '📊', '💰', '🏢', '⚡', '🚀', '📈'];
@@ -71,7 +82,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onRenameCategory,
   onDeleteCategory,
   currentTransactions,
-  onOpenEvalModal
+  onOpenEvalModal,
+  appLogoUrl,
+  appLogoFit,
+  ownerToken,
+  hasOwnerPasscode,
+  envManagedPasscode,
+  onUnlockOwner,
+  onLockOwner,
+  onLogoUpdated,
+  autoOpenOwnerUnlock,
+  onDismissAutoOpenOwnerUnlock
 }) => {
   const [nameInput, setNameInput] = useState(appName);
   const [iconInput, setIconInput] = useState(appIcon);
@@ -659,6 +680,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           )}
         </form>
       </div>
+
+      {/* Owner-Only Restricted App Logo Image Upload (Not accessible to clients) */}
+      <OwnerLogoControl
+        appName={appName}
+        appIcon={appIcon}
+        appLogoUrl={appLogoUrl}
+        appLogoFit={appLogoFit}
+        ownerToken={ownerToken}
+        hasOwnerPasscode={hasOwnerPasscode}
+        envManagedPasscode={envManagedPasscode}
+        onUnlockSuccess={onUnlockOwner}
+        onLockOwner={onLockOwner}
+        onLogoUpdated={onLogoUpdated}
+        autoOpenUnlock={autoOpenOwnerUnlock}
+        onDismissAutoOpen={onDismissAutoOpenOwnerUnlock}
+      />
     </div>
   );
 };
