@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analytics Dashboard Template — React &amp; TypeScript</title>
+    <meta
+      name="description"
+      content="Data-rich admin interface with chart modules, KPI widgets and responsive layouts built in React and TypeScript."
+    />
+    <meta property="og:title" content="Analytics Dashboard Template" />
+    <meta
+      property="og:description"
+      content="Data-rich admin interface with chart modules, KPI widgets and responsive layouts built in React and TypeScript."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --surface-muted: #f1f5f9;
+        --border: #e2e8f0;
+        --text: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #64748b;
+        --accent: #0f172a;
+        --accent-fg: #ffffff;
+        --emerald: #059669;
+        --emerald-soft: rgba(5, 150, 105, 0.1);
+        --rose: #dc2626;
+        --rose-soft: rgba(220, 38, 38, 0.1);
+        --indigo: #4f46e5;
+        --shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      }
+
+      html.dark {
+        --bg: #0b0f19;
+        --surface: #0f172a;
+        --surface-muted: #1e293b;
+        --border: #1e293b;
+        --text: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --accent: #f8fafc;
+        --accent-fg: #0f172a;
+        --emerald: #34d399;
+        --emerald-soft: rgba(52, 211, 153, 0.14);
+        --rose: #fb7185;
+        --rose-soft: rgba(251, 113, 133, 0.14);
+        --indigo: #818cf8;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .mono {
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-variant-numeric: tabular-nums;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button {
+        font-family: inherit;
+        cursor: pointer;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* Top Bar (3-zone contract) */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .topbar-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+      }
+
+      .brand {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+      }
+
+      .nav-links a {
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: color 150ms ease;
+      }
+
+      .nav-links a:hover {
+        color: var(--text);
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        flex-shrink: 0;
+        border: 1px solid transparent;
+        transition: opacity 150ms ease, background-color 150ms ease, border-color 150ms ease;
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: var(--accent-fg);
+      }
+
+      .btn-primary:hover {
+        opacity: 0.9;
+      }
+
+      .btn-secondary {
+        background: var(--surface);
+        color: var(--text);
+        border-color: var(--border);
+      }
+
+      .btn-secondary:hover {
+        background: var(--surface-muted);
+      }
+
+      /* Hero */
+      .hero {
+        padding: 56px 0 40px;
+      }
+
+      .meta-line {
+        font-size: 13px;
+        color: var(--text-muted);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2.1rem, 4vw, 3.25rem);
+        line-height: 1.12;
+        letter-spacing: -0.03em;
+        font-weight: 700;
+        text-wrap: balance;
+        max-width: 780px;
+      }
+
+      .hero-sub {
+        margin: 16px 0 28px;
+        font-size: 17px;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        max-width: 68ch;
+      }
+
+      .hero-cta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+      }
+
+      /* Interactive Template Showcase Frame */
+      .showcase-shell {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        margin-bottom: 56px;
+      }
+
+      .showcase-toolbar {
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-muted);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .showcase-toolbar-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+      }
+
+      .segmented {
+        display: inline-flex;
+        padding: 3px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        gap: 2px;
+      }
+
+      .segmented button {
+        border: 0;
+        background: transparent;
+        color: var(--text-muted);
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .segmented button.active {
+        background: var(--accent);
+        color: var(--accent-fg);
+      }
+
+      .preview-grid {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        min-height: 460px;
+      }
+
+      .preview-grid.collapsed {
+        grid-template-columns: 68px 1fr;
+      }
+
+      .preview-sidebar {
+        border-right: 1px solid var(--border);
+        background: var(--surface);
+        padding: 16px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .preview-brand {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .preview-monogram {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--accent);
+        color: var(--accent-fg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      .preview-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .preview-nav-item {
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+
+      .preview-nav-item.active {
+        background: var(--accent);
+        color: var(--accent-fg);
+        font-weight: 600;
+      }
+
+      .preview-grid.collapsed .hide-on-collapse {
+        display: none;
+      }
+
+      .preview-grid.collapsed .preview-nav-item {
+        justify-content: center;
+        padding: 8px;
+      }
+
+      .preview-main {
+        padding: 20px;
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .kpi-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+
+      .kpi-label {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+
+      .kpi-value {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 6px;
+      }
+
+      .kpi-delta {
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .delta-pos {
+        color: var(--emerald);
+      }
+
+      .delta-neg {
+        color: var(--rose);
+      }
+
+      .charts-row {
+        display: grid;
+        grid-template-columns: 7fr 5fr;
+        gap: 12px;
+      }
+
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .panel-title {
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .panel-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .bar-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .bar-row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .bar-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+      }
+
+      .bar-track {
+        height: 6px;
+        border-radius: 999px;
+        background: var(--surface-muted);
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: var(--indigo);
+      }
+
+      /* Section Grid */
+      .section {
+        padding: 40px 0;
+        border-top: 1px solid var(--border);
+      }
+
+      .section-header {
+        margin-bottom: 24px;
+      }
+
+      .section-header h2 {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .section-header p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+
+      .module-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .module-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+      }
+
+      .module-card h3 {
+        margin: 0 0 6px;
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .module-file {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+
+      .module-card p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.55;
+      }
+
+      /* Specs Table */
+      .spec-table-wrap {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      th {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        background: var(--surface-muted);
+      }
+
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 24px 0;
+        margin-top: 32px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .footer-inner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      @media (max-width: 960px) {
+        .kpi-row {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .charts-row {
+          grid-template-columns: 1fr;
+        }
+        .module-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 720px) {
+        .nav-links {
+          display: none;
+        }
+        .preview-grid,
+        .preview-grid.collapsed {
+          grid-template-columns: 1fr;
+        }
+        .preview-sidebar {
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+        .module-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media print {
+        .topbar,
+        .no-print {
+          display: none !important;
+        }
+        body {
+          background: #ffffff;
+          color: #0f172a;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a href="#top" class="brand">Analytics Dashboard Template</a>
+
+        <nav class="nav-links" aria-label="Template sections">
+          <a href="#preview">Live Preview</a>
+          <a href="#modules">Modules</a>
+          <a href="#specs">Technical Specs</a>
+          <a href="#publishing">Publishing Info</a>
+        </nav>
+
+        <div class="topbar-actions">
+          <button type="button" id="themeToggle" class="btn btn-secondary" aria-label="Toggle theme">
+            Theme
+          </button>
+          <a href="/" class="btn btn-primary">Open Live App</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="top" class="container">
+      <section class="hero">
+        <div class="meta-line">
+          <span>React 19</span>
+          <span aria-hidden="true">·</span>
+          <span>TypeScript</span>
+          <span aria-hidden="true">·</span>
+          <span>Tailwind CSS v4</span>
+          <span aria-hidden="true">·</span>
+          <span>Responsive Admin Interface</span>
+        </div>
+
+        <h1>Analytics Dashboard Template</h1>
+        <p class="hero-sub">
+          Data-rich admin interface with chart modules, KPI widgets and responsive layouts built in
+          React and TypeScript.
+        </p>
+
+        <div class="hero-cta no-print">
+          <a href="/" class="btn btn-primary">Launch Live Dashboard</a>
+          <button type="button" id="copyListingBtn" class="btn btn-secondary">
+            Copy Publishing Summary
+          </button>
+          <button type="button" onclick="window.print()" class="btn btn-secondary">
+            Print Spec Sheet
+          </button>
+        </div>
+      </section>
+
+      <!-- Interactive Workspace Preview -->
+      <section id="preview" class="showcase-shell" aria-label="Interactive template layout preview">
+        <div class="showcase-toolbar">
+          <span class="showcase-toolbar-title">Interactive Layout &amp; Module Preview</span>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <button type="button" id="toggleSidebarBtn" class="btn btn-secondary" style="padding: 5px 12px; font-size: 12px;">
+              Collapse Sidebar
+            </button>
+            <div class="segmented" role="tablist" aria-label="Preview dataset period">
+              <button type="button" class="active" data-period="quarter">Latest Period</button>
+              <button type="button" data-period="annual">Full Year</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="previewGrid" class="preview-grid">
+          <aside class="preview-sidebar" aria-label="Preview sidebar">
+            <div class="preview-brand">
+              <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                <div class="preview-monogram">AB</div>
+                <span class="hide-on-collapse" style="font-size: 13px; font-weight: 700; white-space: nowrap;">
+                  Asetech Admin
+                </span>
+              </div>
+            </div>
+            <div class="preview-nav">
+              <div class="preview-nav-item active" title="Dashboard">
+                <span class="mono">01</span>
+                <span class="hide-on-collapse">Dashboard</span>
+              </div>
+              <div class="preview-nav-item" title="Analytics">
+                <span class="mono">02</span>
+                <span class="hide-on-collapse">Analytics</span>
+              </div>
+              <div class="preview-nav-item" title="Categories">
+                <span class="mono">03</span>
+                <span class="hide-on-collapse">Categories</span>
+              </div>
+              <div class="preview-nav-item" title="Settings">
+                <span class="mono">04</span>
+                <span class="hide-on-collapse">Settings</span>
+              </div>
+            </div>
+          </aside>
+
+          <div class="preview-main">
+            <div class="kpi-row">
+              <div class="kpi-card">
+                <div class="kpi-label">Gross Revenue</div>
+                <div class="kpi-value mono" id="kpiIncome">$48,920.00</div>
+                <div class="kpi-delta delta-pos mono" id="kpiIncomeDelta">+14.2% vs. prior period</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Operating Spend</div>
+                <div class="kpi-value mono" id="kpiExpense">$19,340.00</div>
+                <div class="kpi-delta delta-pos mono" id="kpiExpenseDelta">-6.4% vs. prior period</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Net Profit</div>
+                <div class="kpi-value mono" id="kpiNet">$29,580.00</div>
+                <div class="kpi-delta delta-pos mono" id="kpiNetDelta">+22.8% vs. prior period</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Avg. Transaction</div>
+                <div class="kpi-value mono" id="kpiAvg">$1,625.24</div>
+                <div class="kpi-delta delta-pos mono" id="kpiAvgDelta">+4.1% vs. prior period</div>
+              </div>
+            </div>
+
+            <div class="charts-row">
+              <div class="panel">
+                <div class="panel-head">
+                  <div>
+                    <div class="panel-title">Cumulative Cash Flow Trajectory</div>
+                    <div class="panel-sub">Responsive SVG time-series module</div>
+                  </div>
+                  <span class="mono panel-sub" id="chartTag">USD · 30 days</span>
+                </div>
+                <svg viewBox="0 0 560 155" width="100%" height="155" role="img" aria-label="Cash flow trajectory chart">
+                  <line x1="20" y1="125" x2="540" y2="125" stroke="var(--border)" stroke-dasharray="4 4" />
+                  <line x1="20" y1="75" x2="540" y2="75" stroke="var(--border)" stroke-width="0.7" />
+                  <line x1="20" y1="25" x2="540" y2="25" stroke="var(--border)" stroke-width="0.7" />
+                  <path
+                    id="chartArea"
+                    d="M 20 118 L 105 98 L 190 104 L 275 74 L 360 66 L 445 42 L 540 24 L 540 125 L 20 125 Z"
+                    fill="var(--emerald-soft)"
+                  />
+                  <path
+                    id="chartLine"
+                    d="M 20 118 L 105 98 L 190 104 L 275 74 L 360 66 L 445 42 L 540 24"
+                    fill="none"
+                    stroke="var(--emerald)"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle cx="105" cy="98" r="3.5" fill="var(--surface)" stroke="var(--emerald)" stroke-width="2" />
+                  <circle cx="275" cy="74" r="3.5" fill="var(--surface)" stroke="var(--emerald)" stroke-width="2" />
+                  <circle cx="445" cy="42" r="3.5" fill="var(--surface)" stroke="var(--emerald)" stroke-width="2" />
+                  <circle cx="540" cy="24" r="4" fill="var(--emerald)" />
+                </svg>
+              </div>
+
+              <div class="panel">
+                <div class="panel-head">
+                  <div>
+                    <div class="panel-title">Category Share</div>
+                    <div class="panel-sub">Top expense allocation</div>
+                  </div>
+                </div>
+                <div class="bar-list">
+                  <div class="bar-row">
+                    <div class="bar-meta">
+                      <span>Cloud Infrastructure</span>
+                      <span class="mono">38%</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill" style="width: 38%;"></div></div>
+                  </div>
+                  <div class="bar-row">
+                    <div class="bar-meta">
+                      <span>Contractor Payroll</span>
+                      <span class="mono">29%</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill" style="width: 29%;"></div></div>
+                  </div>
+                  <div class="bar-row">
+                    <div class="bar-meta">
+                      <span>Facilities &amp; Ops</span>
+                      <span class="mono">21%</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill" style="width: 21%;"></div></div>
+                  </div>
+                  <div class="bar-row">
+                    <div class="bar-meta">
+                      <span>Software Tools</span>
+                      <span class="mono">12%</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill" style="width: 12%;"></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Core Modules -->
+      <section id="modules" class="section">
+        <div class="section-header">
+          <h2>Included React &amp; TypeScript Modules</h2>
+          <p>Modular components engineered for dense telemetry, crisp alignment, and responsive layouts.</p>
+        </div>
+
+        <div class="module-grid">
+          <article class="module-card">
+            <h3>KPI Metric Widgets</h3>
+            <div class="module-file mono">src/components/MetricCards.tsx</div>
+            <p>
+              Four-column KPI strip with tabular numerals, favorable/unfavorable trend deltas, and
+              automatic period-over-period timeframe comparison.
+            </p>
+          </article>
+
+          <article class="module-card">
+            <h3>Chart Modules</h3>
+            <div class="module-file mono">src/components/FinancialCharts.tsx</div>
+            <p>
+              Zero-dependency SVG cumulative cash flow trajectory with hover tooltips paired with
+              proportional category dominance breakdowns.
+            </p>
+          </article>
+
+          <article class="module-card">
+            <h3>Collapsible Navigation Shell</h3>
+            <div class="module-file mono">src/components/Sidebar.tsx</div>
+            <p>
+              Sticky left rail toggling between 256px expanded and 72px icon-only widths with
+              persisted state and a mobile slide-over drawer.
+            </p>
+          </article>
+
+          <article class="module-card">
+            <h3>High-Density Data Table</h3>
+            <div class="module-file mono">src/components/TransactionTable.tsx</div>
+            <p>
+              Sortable transaction ledger supporting inline inspection, anomaly outlier flags,
+              bulk selection delete, and instant search filtering.
+            </p>
+          </article>
+
+          <article class="module-card">
+            <h3>CSV &amp; Report Generators</h3>
+            <div class="module-file mono">src/components/FinancialReportModal.tsx</div>
+            <p>
+              Interactive CSV column mapper alongside print-optimized executive financial reports
+              with dedicated light-mode print CSS rules.
+            </p>
+          </article>
+
+          <article class="module-card">
+            <h3>Role-Scoped Admin Controls</h3>
+            <div class="module-file mono">src/components/OwnerLogoControl.tsx</div>
+            <p>
+              Passcode-protected owner controls for custom logo uploads and developer dataset
+              views while keeping client views streamlined.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- Technical Specifications -->
+      <section id="specs" class="section">
+        <div class="section-header">
+          <h2>Technical Specifications</h2>
+          <p>Architecture, dependencies, and responsive viewport targets.</p>
+        </div>
+
+        <div class="spec-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Specification</th>
+                <th>Implementation</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Core Stack</td>
+                <td class="mono">React 19 · TypeScript</td>
+                <td>Strict typed props, modular functional components, memoized selectors</td>
+              </tr>
+              <tr>
+                <td>Styling System</td>
+                <td class="mono">Tailwind CSS v4</td>
+                <td>@custom-variant dark light/dark pairing, tabular-nums discipline</td>
+              </tr>
+              <tr>
+                <td>Responsive Breakpoints</td>
+                <td class="mono">375px · 768px · 1440px</td>
+                <td>Mobile slide-over drawer, adaptive KPI grid, sticky desktop sidebar</td>
+              </tr>
+              <tr>
+                <td>Build &amp; Serving</td>
+                <td class="mono">Vite 8 · Express · esbuild</td>
+                <td>Fast HMR in dev, bundled ESM server and static assets in production</td>
+              </tr>
+              <tr>
+                <td>Data Utilities</td>
+                <td class="mono">CSV · JSON · LocalStorage</td>
+                <td>Client-side persistence, multi-currency formatting, outlier detection</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Publishing Metadata -->
+      <section id="publishing" class="section">
+        <div class="section-header">
+          <h2>Publishing Metadata</h2>
+          <p>Ready-to-use listing summary and manifest endpoints for marketplace or repository publishing.</p>
+        </div>
+
+        <div class="spec-table-wrap">
+          <table>
+            <tbody>
+              <tr>
+                <th style="width: 220px;">Template Name</th>
+                <td><strong>Analytics Dashboard Template</strong></td>
+              </tr>
+              <tr>
+                <th>Tagline</th>
+                <td>Data-rich admin interface with chart modules, KPI widgets and responsive layouts built in React and TypeScript.</td>
+              </tr>
+              <tr>
+                <th>Manifest JSON</th>
+                <td class="mono"><a href="/template-manifest.json">/template-manifest.json</a></td>
+              </tr>
+              <tr>
+                <th>Standalone Page URL</th>
+                <td class="mono">/analytics-dashboard-template.html</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container footer-inner">
+        <span>Analytics Dashboard Template · Built in React &amp; TypeScript</span>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <a href="/template-manifest.json" class="mono">Manifest JSON</a>
+          <a href="/">Return to Live App</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        const root = document.documentElement;
+        const themeBtn = document.getElementById('themeToggle');
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') root.classList.add('dark');
+
+        function syncThemeLabel() {
+          themeBtn.textContent = root.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
+        }
+        syncThemeLabel();
+
+        themeBtn.addEventListener('click', function () {
+          root.classList.toggle('dark');
+          localStorage.setItem('theme', root.classList.contains('dark') ? 'dark' : 'light');
+          syncThemeLabel();
+        });
+
+        const previewGrid = document.getElementById('previewGrid');
+        const collapseBtn = document.getElementById('toggleSidebarBtn');
+        collapseBtn.addEventListener('click', function () {
+          const collapsed = previewGrid.classList.toggle('collapsed');
+          collapseBtn.textContent = collapsed ? 'Expand Sidebar' : 'Collapse Sidebar';
+        });
+
+        const datasets = {
+          quarter: {
+            income: '$48,920.00',
+            incomeDelta: '+14.2% vs. prior period',
+            expense: '$19,340.00',
+            expenseDelta: '-6.4% vs. prior period',
+            net: '$29,580.00',
+            netDelta: '+22.8% vs. prior period',
+            avg: '$1,625.24',
+            avgDelta: '+4.1% vs. prior period',
+            tag: 'USD · 30 days',
+            line: 'M 20 118 L 105 98 L 190 104 L 275 74 L 360 66 L 445 42 L 540 24',
+            area: 'M 20 118 L 105 98 L 190 104 L 275 74 L 360 66 L 445 42 L 540 24 L 540 125 L 20 125 Z'
+          },
+          annual: {
+            income: '$214,680.00',
+            incomeDelta: '+19.6% vs. prior year',
+            expense: '$86,120.00',
+            expenseDelta: '-3.1% vs. prior year',
+            net: '$128,560.00',
+            netDelta: '+31.4% vs. prior year',
+            avg: '$1,842.90',
+            avgDelta: '+8.5% vs. prior year',
+            tag: 'USD · 12 months',
+            line: 'M 20 120 L 105 106 L 190 88 L 275 82 L 360 54 L 445 36 L 540 18',
+            area: 'M 20 120 L 105 106 L 190 88 L 275 82 L 360 54 L 445 36 L 540 18 L 540 125 L 20 125 Z'
+          }
+        };
+
+        document.querySelectorAll('[data-period]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            document.querySelectorAll('[data-period]').forEach(function (b) {
+              b.classList.remove('active');
+            });
+            btn.classList.add('active');
+            const d = datasets[btn.getAttribute('data-period')];
+            document.getElementById('kpiIncome').textContent = d.income;
+            document.getElementById('kpiIncomeDelta').textContent = d.incomeDelta;
+            document.getElementById('kpiExpense').textContent = d.expense;
+            document.getElementById('kpiExpenseDelta').textContent = d.expenseDelta;
+            document.getElementById('kpiNet').textContent = d.net;
+            document.getElementById('kpiNetDelta').textContent = d.netDelta;
+            document.getElementById('kpiAvg').textContent = d.avg;
+            document.getElementById('kpiAvgDelta').textContent = d.avgDelta;
+            document.getElementById('chartTag').textContent = d.tag;
+            document.getElementById('chartLine').setAttribute('d', d.line);
+            document.getElementById('chartArea').setAttribute('d', d.area);
+          });
+        });
+
+        const copyBtn = document.getElementById('copyListingBtn');
+        copyBtn.addEventListener('click', function () {
+          const listingText =
+            'Analytics Dashboard Template\n' +
+            'Data-rich admin interface with chart modules, KPI widgets and responsive layouts built in React and TypeScript.';
+          navigator.clipboard.writeText(listingText).then(function () {
+            copyBtn.textContent = 'Copied Summary';
+            setTimeout(function () {
+              copyBtn.textContent = 'Copy Publishing Summary';
+            }, 2000);
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

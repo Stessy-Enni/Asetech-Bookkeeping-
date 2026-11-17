@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Save, RotateCcw, Check, Sparkles, Shield, Database, Palette, Building2, Briefcase, FileText, Tags, PlusCircle, BookOpen } from 'lucide-react';
+import { Settings, Save, RotateCcw, Check, Sparkles, Shield, Database, Palette, Building2, Briefcase, FileText, Tags, PlusCircle, BookOpen, LayoutTemplate, ExternalLink } from 'lucide-react';
 import { CurrencyConfig, SUPPORTED_CURRENCIES, BusinessProfile, BusinessPreset, Transaction } from '../types';
 import { OwnerLogoControl } from './OwnerLogoControl';
 
@@ -25,6 +25,7 @@ interface SettingsViewProps {
   onDeleteCategory: (categoryName: string) => void;
   currentTransactions: Transaction[];
   onOpenEvalModal: () => void;
+  onOpenPublishModal: () => void;
   appLogoUrl: string | null;
   appLogoFit: 'cover' | 'contain';
   ownerToken: string | null;
@@ -83,6 +84,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onDeleteCategory,
   currentTransactions,
   onOpenEvalModal,
+  onOpenPublishModal,
   appLogoUrl,
   appLogoFit,
   ownerToken,
@@ -182,6 +184,47 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <BookOpen className="w-3.5 h-3.5" />
             <span>Open Evaluation Summary Template</span>
           </button>
+        </div>
+      </div>
+
+      {/* Standalone Analytics Dashboard Template (For Publishing) */}
+      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs space-y-4 transition-colors">
+        <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center font-bold shadow-xs">
+            <LayoutTemplate className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Analytics Dashboard Template (Publishing Kit)
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Data-rich admin interface with chart modules, KPI widgets and responsive layouts built in React and TypeScript.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+          <span className="text-xs text-slate-600 dark:text-slate-400">
+            Separate standalone showcase page, marketplace listing copy, Markdown README, and JSON manifest for publishing.
+          </span>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <a
+              href="/analytics-dashboard-template.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors whitespace-nowrap"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>View Standalone Page</span>
+            </a>
+            <button
+              type="button"
+              onClick={onOpenPublishModal}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-slate-900 dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white rounded-lg transition-colors shadow-2xs whitespace-nowrap"
+            >
+              <LayoutTemplate className="w-3.5 h-3.5" />
+              <span>Open Publishing Kit</span>
+            </button>
+          </div>
         </div>
       </div>
 

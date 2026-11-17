@@ -17,6 +17,7 @@ import { FinancialReportModal } from './components/FinancialReportModal';
 import { SettingsView } from './components/SettingsView';
 import { CustomCurrencyModal } from './components/CustomCurrencyModal';
 import { EvaluationSummaryModal } from './components/EvaluationSummaryModal';
+import { TemplatePublishModal } from './components/TemplatePublishModal';
 import { AIChatDrawer } from './components/AIChatDrawer';
 import { INITIAL_TRANSACTIONS, BUSINESS_PRESETS } from './data/defaultTransactions';
 import { Transaction, BusinessPreset, FilterCriteria, CurrencyConfig, SUPPORTED_CURRENCIES, BusinessProfile } from './types';
@@ -427,6 +428,7 @@ export default function App() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isCustomCurrencyModalOpen, setIsCustomCurrencyModalOpen] = useState(false);
   const [isEvalModalOpen, setIsEvalModalOpen] = useState(false);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [inspectingTransaction, setInspectingTransaction] = useState<Transaction | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -892,6 +894,7 @@ export default function App() {
             onDeleteCategory={handleDeleteCategory}
             currentTransactions={transactions}
             onOpenEvalModal={() => setIsEvalModalOpen(true)}
+            onOpenPublishModal={() => setIsPublishModalOpen(true)}
             appLogoUrl={appLogoUrl}
             appLogoFit={appLogoFit}
             ownerToken={ownerToken}
@@ -986,6 +989,12 @@ export default function App() {
       <EvaluationSummaryModal
         isOpen={isEvalModalOpen}
         onClose={() => setIsEvalModalOpen(false)}
+        appName={appName}
+      />
+
+      <TemplatePublishModal
+        isOpen={isPublishModalOpen}
+        onClose={() => setIsPublishModalOpen(false)}
         appName={appName}
       />
 

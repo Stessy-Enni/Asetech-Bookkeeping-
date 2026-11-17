@@ -1,0 +1,37 @@
+{
+  "title": "Analytics Dashboard Template",
+  "shortDescription": "Data-rich admin interface with chart modules, KPI widgets and responsive layouts built in React and TypeScript.",
+  "version": "1.0.0",
+  "category": "SaaS & Admin Dashboards",
+  "stack": [
+    "React 19",
+    "TypeScript",
+    "Tailwind CSS v4",
+    "Vite",
+    "Express",
+    "Lucide Icons"
+  ],
+  "features": [
+    "Responsive collapsible left sidebar and mobile slide-over drawer",
+    "KPI widgets with automated period-over-period delta indicators",
+    "Interactive SVG cumulative cash flow chart and category dominance bars",
+    "High-density transaction ledger with search, date filters, and bulk actions",
+    "Statistical anomaly detection and one-click normalization",
+    "Multi-currency support, CSV mapping importer, and print-ready PDF reports",
+    "Light and high-contrast dark mode themes"
+  ],
+  "tags": [
+    "react",
+    "typescript",
+    "analytics-dashboard",
+    "admin-template",
+    "kpi-widgets",
+    "charts",
+    "tailwindcss",
+    "responsive-layout"
+  ],
+  "entryPoints": {
+    "application": "/",
+    "standaloneShowcase": "/analytics-dashboard-template.html"
+  }
+}
