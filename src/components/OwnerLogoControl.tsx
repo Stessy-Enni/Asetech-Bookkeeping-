@@ -172,7 +172,7 @@ export const OwnerLogoControl: React.FC<OwnerLogoControlProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-owner-token': ownerToken
+          Authorization: `Bearer ${ownerToken}`
         },
         body: JSON.stringify({
           appLogoDataUrl: draftLogoUrl,
@@ -187,7 +187,7 @@ export const OwnerLogoControl: React.FC<OwnerLogoControlProps> = ({
         throw new Error(data.error || 'Failed to save app logo.');
       }
       onLogoUpdated(data.appLogoDataUrl, data.appLogoFit);
-      setUploadSuccess('App logo updated! All clients now see the new logo.');
+      setUploadSuccess('App logo updated! All users now see the new logo.');
       setTimeout(() => setUploadSuccess(null), 3500);
     } catch (err: any) {
       setUploadError(err.message || 'Could not save logo.');
@@ -205,7 +205,7 @@ export const OwnerLogoControl: React.FC<OwnerLogoControlProps> = ({
       const res = await fetch('/api/branding/logo', {
         method: 'DELETE',
         headers: {
-          'x-owner-token': ownerToken
+          Authorization: `Bearer ${ownerToken}`
         }
       });
       const data = await res.json();
@@ -226,7 +226,7 @@ export const OwnerLogoControl: React.FC<OwnerLogoControlProps> = ({
     }
   };
 
-  // Client View (Locked): Logo upload option is NOT rendered or accessible to clients
+  // Standard User View (Locked): Admin branding, settings, and logo upload are NOT rendered
   if (!ownerToken) {
     return (
       <>
@@ -235,10 +235,10 @@ export const OwnerLogoControl: React.FC<OwnerLogoControlProps> = ({
             type="button"
             onClick={() => setShowUnlockModal(true)}
             className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors py-1 px-2 rounded-md"
-            title="Owner-only app logo administration"
+            title="Admin-only branding, settings, and logo administration"
           >
             <Lock className="w-3 h-3" />
-            <span>Owner Access</span>
+            <span>Admin Access</span>
           </button>
         </div>
 
@@ -252,10 +252,10 @@ export const OwnerLogoControl: React.FC<OwnerLogoControlProps> = ({
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                      {hasOwnerPasscode ? 'Owner Authentication' : 'Set Owner Passcode'}
+                      {hasOwnerPasscode ? 'Admin Authentication' : 'Set Admin Passcode'}
                     </h3>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Restricted to app owner · Not accessible to clients
+                      Restricted to app admin · Not accessible to users
                     </p>
                   </div>
                 </div>
@@ -271,13 +271,13 @@ export const OwnerLogoControl: React.FC<OwnerLogoControlProps> = ({
               <form onSubmit={handleUnlockSubmit} className="space-y-3">
                 {!hasOwnerPasscode && !envManagedPasscode && (
                   <p className="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/70 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                    Create an owner passcode to unlock custom logo image uploads and keep them locked from clients.
+                    Create an admin passcode to unlock Application Branding &amp; Settings, custom logo uploads, and developer dataset views.
                   </p>
                 )}
 
                 <div className="space-y-1.5">
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    {hasOwnerPasscode ? 'Enter Owner Passcode' : 'New Owner Passcode'}
+                    {hasOwnerPasscode ? 'Enter Admin Passcode' : 'New Admin Passcode'}
                   </label>
                   <input
                     type="password"
@@ -293,7 +293,7 @@ export const OwnerLogoControl: React.FC<OwnerLogoControlProps> = ({
                 {!hasOwnerPasscode && !envManagedPasscode && (
                   <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Confirm Owner Passcode
+                      Confirm Admin Passcode
                     </label>
                     <input
                       type="password"
@@ -326,7 +326,7 @@ export const OwnerLogoControl: React.FC<OwnerLogoControlProps> = ({
                     disabled={isUnlocking}
                     className="px-4 py-1.5 text-xs font-semibold text-white bg-slate-900 dark:bg-slate-100 dark:text-slate-900 rounded-lg hover:bg-slate-800 dark:hover:bg-white disabled:opacity-50"
                   >
-                    {isUnlocking ? 'Verifying...' : hasOwnerPasscode ? 'Unlock Owner Panel' : 'Set Passcode & Unlock'}
+                    {isUnlocking ? 'Verifying...' : hasOwnerPasscode ? 'Unlock Admin Panel' : 'Set Passcode & Unlock'}
                   </button>
                 </div>
               </form>
@@ -337,25 +337,20 @@ export const OwnerLogoControl: React.FC<OwnerLogoControlProps> = ({
     );
   }
 
-  // Unlocked Owner View: Full Image Logo Uploader
+  // Unlocked Admin View: Full Image Logo Uploader
   return (
-    <div className="p-6 bg-white dark:bg-slate-900 border-2 border-indigo-500/40 dark:border-indigo-400/30 rounded-2xl shadow-sm space-y-5 transition-colors">
+    <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs space-y-5 transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center shadow-xs shrink-0">
             <Unlock className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                Owner-Only App Logo Customization
-              </h2>
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
-                Hidden from Clients
-              </span>
-            </div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Admin-Only App Logo Customization
+            </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Upload a custom image logo for {appName}. Clients see the published logo but cannot access or modify it.
+              Admin only · Hidden from users · Upload a custom image logo for {appName}.
             </p>
           </div>
         </div>
@@ -366,7 +361,7 @@ export const OwnerLogoControl: React.FC<OwnerLogoControlProps> = ({
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors self-start sm:self-auto whitespace-nowrap"
         >
           <Lock className="w-3.5 h-3.5" />
-          <span>Lock (Client View)</span>
+          <span>Lock (User View)</span>
         </button>
       </div>
 

@@ -11,10 +11,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json({ limit: '5mb' }));
 
-// --- Owner-Restricted Branding & Logo Storage ---
+// --- Admin-Restricted Branding, Settings & Logo Storage ---
 const BRANDING_STORE_PATH = path.join(process.cwd(), '.branding-store.json');
+const DEFAULT_APP_NAME = 'Asetech Bookkeeping';
+const DEFAULT_APP_ICON = 'AB';
 
 interface BrandingStore {
+  appName: string;
+  appIcon: string;
   appLogoDataUrl: string | null;
   appLogoFit: 'cover' | 'contain';
   ownerPasscodeHash: string | null;
@@ -26,6 +30,14 @@ function loadBrandingStore(): BrandingStore {
       const raw = fs.readFileSync(BRANDING_STORE_PATH, 'utf-8');
       const parsed = JSON.parse(raw);
       return {
+        appName:
+          typeof parsed?.appName === 'string' && parsed.appName.trim().length > 0
+            ? parsed.appName.trim().slice(0, 40)
+            : DEFAULT_APP_NAME,
+        appIcon:
+          typeof parsed?.appIcon === 'string' && parsed.appIcon.trim().length > 0
+            ? parsed.appIcon.trim().slice(0, 4)
+            : DEFAULT_APP_ICON,
         appLogoDataUrl: typeof parsed?.appLogoDataUrl === 'string' ? parsed.appLogoDataUrl : null,
         appLogoFit: parsed?.appLogoFit === 'contain' ? 'contain' : 'cover',
         ownerPasscodeHash: typeof parsed?.ownerPasscodeHash === 'string' ? parsed.ownerPasscodeHash : null,
@@ -34,7 +46,13 @@ function loadBrandingStore(): BrandingStore {
   } catch (err) {
     console.warn('Could not read branding store from disk, using in-memory store:', err);
   }
-  return { appLogoDataUrl: null, appLogoFit: 'cover', ownerPasscodeHash: null };
+  return {
+    appName: DEFAULT_APP_NAME,
+    appIcon: DEFAULT_APP_ICON,
+    appLogoDataUrl: null,
+    appLogoFit: 'cover',
+    ownerPasscodeHash: null,
+  };
 }
 
 function saveBrandingStore(store: BrandingStore) {
@@ -46,29 +64,58 @@ function saveBrandingStore(store: BrandingStore) {
 }
 
 function hashPasscode(passcode: string): string {
-  return crypto.createHash('sha256').update(`asetech-owner:${passcode}`).digest('hex');
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derived = crypto.scryptSync(passcode, salt, 64).toString('hex');
+  return `scrypt:${salt}:${derived}`;
 }
 
-function verifyPasscodeMatch(inputPasscode: string, expectedHash: string): boolean {
-  const inputHash = hashPasscode(inputPasscode);
-  const a = Buffer.from(inputHash, 'hex');
-  const b = Buffer.from(expectedHash, 'hex');
+function verifyPasscodeMatch(inputPasscode: string, storedHash: string): boolean {
+  if (storedHash.startsWith('scrypt:')) {
+    const parts = storedHash.split(':');
+    if (parts.length !== 3) return false;
+    const [, salt, expectedHex] = parts;
+    const derived = crypto.scryptSync(inputPasscode, salt, 64);
+    const expected = Buffer.from(expectedHex, 'hex');
+    return derived.length === expected.length && crypto.timingSafeEqual(derived, expected);
+  }
+  // Legacy SHA-256 fallback for previously saved hashes
+  const legacyHash = crypto.createHash('sha256').update(`asetech-owner:${inputPasscode}`).digest('hex');
+  const a = Buffer.from(legacyHash, 'hex');
+  const b = Buffer.from(storedHash, 'hex');
   return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function verifyEnvPasscode(inputPasscode: string, envPasscode: string): boolean {
+  const a = crypto.createHash('sha256').update(inputPasscode).digest();
+  const b = crypto.createHash('sha256').update(envPasscode).digest();
+  return crypto.timingSafeEqual(a, b);
 }
 
 let brandingStore: BrandingStore = loadBrandingStore();
 const activeOwnerTokens = new Map<string, number>(); // token -> expiresAt timestamp
 const TOKEN_TTL_MS = 1000 * 60 * 60 * 8; // 8 hours
 
+function extractAuthToken(req: express.Request): string | null {
+  const authHeader = req.header('authorization');
+  if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+    const bearer = authHeader.slice(7).trim();
+    if (bearer) return bearer;
+  }
+  const legacyToken = req.header('x-owner-token')?.trim();
+  return legacyToken || null;
+}
+
 function requireOwnerAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const token = req.header('x-owner-token');
+  const token = extractAuthToken(req);
   if (!token) {
-    return res.status(403).json({ error: 'Owner authorization required. Clients cannot modify the app logo.' });
+    return res
+      .status(403)
+      .json({ error: 'Admin authorization required. Users cannot modify application branding or settings.' });
   }
   const expiresAt = activeOwnerTokens.get(token);
   if (!expiresAt || Date.now() > expiresAt) {
     activeOwnerTokens.delete(token);
-    return res.status(403).json({ error: 'Owner session expired. Please unlock Owner Access again.' });
+    return res.status(403).json({ error: 'Admin session expired. Please unlock Admin Access again.' });
   }
   next();
 }
@@ -78,11 +125,13 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Public read endpoint so clients see the owner's configured logo
+// Public read endpoint so all users see the admin's published branding and logo
 app.get('/api/branding', (_req, res) => {
   const envPasscode = process.env.OWNER_PASSCODE?.trim();
   const hasOwnerPasscode = Boolean(envPasscode || brandingStore.ownerPasscodeHash);
   res.json({
+    appName: brandingStore.appName,
+    appIcon: brandingStore.appIcon,
     appLogoDataUrl: brandingStore.appLogoDataUrl,
     appLogoFit: brandingStore.appLogoFit,
     hasOwnerPasscode,
@@ -90,7 +139,7 @@ app.get('/api/branding', (_req, res) => {
   });
 });
 
-// Owner unlock / initial passcode setup
+// Admin unlock / first-run passcode setup
 app.post('/api/owner/unlock', (req, res) => {
   const passcode = typeof req.body?.passcode === 'string' ? req.body.passcode.trim() : '';
   if (!passcode || passcode.length < 4) {
@@ -99,20 +148,25 @@ app.post('/api/owner/unlock', (req, res) => {
 
   const envPasscode = process.env.OWNER_PASSCODE?.trim();
   if (envPasscode) {
-    if (!verifyPasscodeMatch(passcode, hashPasscode(envPasscode))) {
-      return res.status(403).json({ error: 'Incorrect owner passcode.' });
+    if (!verifyEnvPasscode(passcode, envPasscode)) {
+      return res.status(403).json({ error: 'Incorrect admin passcode.' });
     }
   } else if (!brandingStore.ownerPasscodeHash) {
-    // First-time setup by the owner
+    // First-time setup by the admin
     brandingStore.ownerPasscodeHash = hashPasscode(passcode);
     saveBrandingStore(brandingStore);
   } else {
     if (!verifyPasscodeMatch(passcode, brandingStore.ownerPasscodeHash)) {
-      return res.status(403).json({ error: 'Incorrect owner passcode.' });
+      return res.status(403).json({ error: 'Incorrect admin passcode.' });
+    }
+    // Upgrade legacy SHA-256 hash to salted scrypt on successful login
+    if (!brandingStore.ownerPasscodeHash.startsWith('scrypt:')) {
+      brandingStore.ownerPasscodeHash = hashPasscode(passcode);
+      saveBrandingStore(brandingStore);
     }
   }
 
-  const token = crypto.randomBytes(24).toString('hex');
+  const token = crypto.randomBytes(32).toString('hex');
   activeOwnerTokens.set(token, Date.now() + TOKEN_TTL_MS);
   res.json({ token, expiresInMs: TOKEN_TTL_MS });
 });
@@ -122,12 +176,37 @@ app.post('/api/owner/verify-token', requireOwnerAuth, (_req, res) => {
 });
 
 app.post('/api/owner/lock', (req, res) => {
-  const token = req.header('x-owner-token');
+  const token = extractAuthToken(req);
   if (token) activeOwnerTokens.delete(token);
   res.json({ locked: true });
 });
 
-// Owner-only logo upload / update
+// Admin-only application name & icon branding settings
+app.post('/api/branding/settings', requireOwnerAuth, (req, res) => {
+  const { appName, appIcon } = req.body || {};
+
+  if (appName !== undefined) {
+    if (typeof appName !== 'string' || appName.trim().length === 0 || appName.trim().length > 40) {
+      return res.status(400).json({ error: 'Application name must be between 1 and 40 characters.' });
+    }
+    brandingStore.appName = appName.trim();
+  }
+
+  if (appIcon !== undefined) {
+    if (typeof appIcon !== 'string' || appIcon.trim().length === 0 || appIcon.trim().length > 4) {
+      return res.status(400).json({ error: 'Application icon must be between 1 and 4 characters.' });
+    }
+    brandingStore.appIcon = appIcon.trim();
+  }
+
+  saveBrandingStore(brandingStore);
+  res.json({
+    appName: brandingStore.appName,
+    appIcon: brandingStore.appIcon,
+  });
+});
+
+// Admin-only logo upload / update
 app.post('/api/branding/logo', requireOwnerAuth, (req, res) => {
   const { appLogoDataUrl, appLogoFit } = req.body || {};
 
@@ -157,7 +236,7 @@ app.post('/api/branding/logo', requireOwnerAuth, (req, res) => {
   });
 });
 
-// Owner-only logo removal
+// Admin-only logo removal
 app.delete('/api/branding/logo', requireOwnerAuth, (_req, res) => {
   brandingStore.appLogoDataUrl = null;
   saveBrandingStore(brandingStore);

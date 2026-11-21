@@ -107,16 +107,7 @@ export default function App() {
     }
     return 'cover';
   });
-  const [ownerToken, setOwnerToken] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        return sessionStorage.getItem('fd_owner_token');
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  });
+  const [ownerToken, setOwnerToken] = useState<string | null>(null);
   const [hasOwnerPasscode, setHasOwnerPasscode] = useState<boolean>(false);
   const [envManagedPasscode, setEnvManagedPasscode] = useState<boolean>(false);
   const [autoOpenOwnerUnlock, setAutoOpenOwnerUnlock] = useState<boolean>(false);
@@ -128,6 +119,12 @@ export default function App() {
         const res = await fetch('/api/branding');
         if (res.ok && active) {
           const data = await res.json();
+          if (typeof data.appName === 'string' && data.appName.trim()) {
+            setAppName(data.appName.trim());
+          }
+          if (typeof data.appIcon === 'string' && data.appIcon.trim()) {
+            setAppIcon(data.appIcon.trim());
+          }
           setAppLogoUrl(data.appLogoDataUrl ?? null);
           setAppLogoFit(data.appLogoFit === 'contain' ? 'contain' : 'cover');
           setHasOwnerPasscode(Boolean(data.hasOwnerPasscode));
@@ -145,26 +142,11 @@ export default function App() {
         console.warn('Could not fetch server branding:', err);
       }
 
-      if (ownerToken) {
-        try {
-          const verifyRes = await fetch('/api/owner/verify-token', {
-            method: 'POST',
-            headers: { 'x-owner-token': ownerToken }
-          });
-          if (!verifyRes.ok && active) {
-            setOwnerToken(null);
-            sessionStorage.removeItem('fd_owner_token');
-          }
-        } catch {}
-      }
-
       if (typeof window !== 'undefined' && active) {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('owner') === '1') {
+        if (params.get('admin') === '1' || params.get('owner') === '1') {
           setActiveTab('settings');
-          if (!ownerToken) {
-            setAutoOpenOwnerUnlock(true);
-          }
+          setAutoOpenOwnerUnlock(true);
         }
       }
     };
@@ -177,27 +159,48 @@ export default function App() {
   const handleUnlockOwner = (token: string) => {
     setOwnerToken(token);
     setHasOwnerPasscode(true);
-    try {
-      sessionStorage.setItem('fd_owner_token', token);
-    } catch {}
-    showToast('Owner Access unlocked');
+    showToast('Admin Access unlocked');
   };
 
   const handleLockOwner = async () => {
     const current = ownerToken;
     setOwnerToken(null);
-    try {
-      sessionStorage.removeItem('fd_owner_token');
-    } catch {}
     if (current) {
       try {
         await fetch('/api/owner/lock', {
           method: 'POST',
-          headers: { 'x-owner-token': current }
+          headers: { Authorization: `Bearer ${current}` }
         });
       } catch {}
     }
-    showToast('Locked to Client View');
+    showToast('Locked to User View');
+  };
+
+  const handleSaveBrandingSettings = async (nextName: string, nextIcon: string) => {
+    if (!ownerToken) {
+      throw new Error('Admin authorization required.');
+    }
+    const res = await fetch('/api/branding/settings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${ownerToken}`
+      },
+      body: JSON.stringify({
+        appName: nextName.trim(),
+        appIcon: nextIcon.trim()
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (res.status === 403) {
+        handleLockOwner();
+      }
+      throw new Error(data.error || 'Failed to save application branding.');
+    }
+    if (typeof data.appName === 'string') setAppName(data.appName);
+    if (typeof data.appIcon === 'string') setAppIcon(data.appIcon);
+    showToast('Application branding updated for all users');
   };
 
   useEffect(() => {
@@ -870,13 +873,12 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 6: Settings & Branding */}
+        {/* Tab 6: Settings */}
         {activeTab === 'settings' && (
           <SettingsView
             appName={appName}
-            onUpdateAppName={setAppName}
             appIcon={appIcon}
-            onUpdateAppIcon={setAppIcon}
+            onSaveBrandingSettings={handleSaveBrandingSettings}
             selectedCurrency={selectedCurrency}
             onCurrencyChange={handleCurrencyChange}
             transactionCount={transactions.length}

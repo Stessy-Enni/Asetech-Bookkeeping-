@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
-import { Settings, Save, RotateCcw, Check, Sparkles, Shield, Database, Palette, Building2, Briefcase, FileText, Tags, PlusCircle, BookOpen, LayoutTemplate, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Save, RotateCcw, Check, Sparkles, Shield, Database, Palette, Building2, Briefcase, FileText, Tags, PlusCircle, BookOpen, LayoutTemplate, ExternalLink, Lock, AlertCircle } from 'lucide-react';
 import { CurrencyConfig, SUPPORTED_CURRENCIES, BusinessProfile, BusinessPreset, Transaction } from '../types';
 import { OwnerLogoControl } from './OwnerLogoControl';
 
 interface SettingsViewProps {
   appName: string;
-  onUpdateAppName: (name: string) => void;
   appIcon: string;
-  onUpdateAppIcon: (icon: string) => void;
+  onSaveBrandingSettings: (name: string, icon: string) => Promise<void>;
   selectedCurrency: CurrencyConfig;
   onCurrencyChange: (currency: CurrencyConfig) => void;
   transactionCount: number;
@@ -64,9 +63,8 @@ const LEGAL_ENTITIES = [
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   appName,
-  onUpdateAppName,
   appIcon,
-  onUpdateAppIcon,
+  onSaveBrandingSettings,
   selectedCurrency,
   onCurrencyChange,
   transactionCount,
@@ -98,6 +96,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const [nameInput, setNameInput] = useState(appName);
   const [iconInput, setIconInput] = useState(appIcon);
+  const [isSavingBranding, setIsSavingBranding] = useState(false);
+  const [brandingError, setBrandingError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setNameInput(appName);
+  }, [appName]);
+
+  useEffect(() => {
+    setIconInput(appIcon);
+  }, [appIcon]);
   
   // Business Profile local state
   const [profileForm, setProfileForm] = useState<BusinessProfile>(businessProfile);
@@ -117,16 +125,30 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [profileToast, setProfileToast] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
-  const handleSaveBranding = (e: React.FormEvent) => {
+  const persistBranding = async (nextName: string, nextIcon: string) => {
+    if (!ownerToken) return;
+    const trimmedName = nextName.trim();
+    const trimmedIcon = nextIcon.trim();
+    if (!trimmedName || !trimmedIcon) {
+      setBrandingError('Application name and icon badge cannot be empty.');
+      return;
+    }
+    setBrandingError(null);
+    setIsSavingBranding(true);
+    try {
+      await onSaveBrandingSettings(trimmedName, trimmedIcon);
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 2500);
+    } catch (err: any) {
+      setBrandingError(err?.message || 'Failed to save branding settings.');
+    } finally {
+      setIsSavingBranding(false);
+    }
+  };
+
+  const handleSaveBranding = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (nameInput.trim()) {
-      onUpdateAppName(nameInput.trim());
-    }
-    if (iconInput.trim()) {
-      onUpdateAppIcon(iconInput.trim());
-    }
-    setSavedToast(true);
-    setTimeout(() => setSavedToast(false), 2500);
+    await persistBranding(nameInput, iconInput);
   };
 
   const handleSaveProfile = (e: React.FormEvent) => {
@@ -568,161 +590,183 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* Application Branding & Settings */}
-      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs space-y-6 transition-colors">
-        <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center font-bold shadow-xs">
-            <Settings className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              Application Branding & Settings
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Customize your bookkeeping app name, icon badge, default currency, and local data persistence.
-            </p>
-          </div>
-        </div>
-
-        <form onSubmit={handleSaveBranding} className="space-y-6">
-          {/* App Name Setting */}
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200">
-              Application Name (Wordmark)
-            </label>
+      {/* Admin-Only Application Branding & Settings (Hidden from regular users) */}
+      {ownerToken && (
+        <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs space-y-6 transition-colors">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
-              <input
-                type="text"
-                value={nameInput}
-                onChange={e => setNameInput(e.target.value)}
-                placeholder="e.g., Asetech Bookkeeping"
-                className="flex-1 px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-slate-100"
-                maxLength={40}
-              />
-              <button
-                type="submit"
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-slate-900 dark:bg-slate-100 dark:text-slate-900 rounded-lg hover:bg-slate-800 dark:hover:bg-white transition-colors shadow-2xs whitespace-nowrap"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>Save Branding</span>
-              </button>
-            </div>
-          </div>
-
-          {/* App Icon / Badge Setting */}
-          <div className="space-y-3">
-            <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200">
-              Application Icon / Badge
-            </label>
-            <div className="flex flex-wrap items-center gap-2">
-              {AVAILABLE_ICONS.map(ic => {
-                const isSelected = iconInput === ic;
-                return (
-                  <button
-                    key={ic}
-                    type="button"
-                    onClick={() => {
-                      setIconInput(ic);
-                      onUpdateAppIcon(ic);
-                    }}
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${
-                      isSelected
-                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm ring-2 ring-slate-900 dark:ring-slate-100'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
-                    }`}
-                  >
-                    {ic}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Default Currency */}
-          <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200">
-              Primary Financial Currency
-            </label>
-            <div className="max-w-xs space-y-2">
-              <select
-                value={SUPPORTED_CURRENCIES.some(c => c.code === selectedCurrency.code) ? selectedCurrency.code : 'CUSTOM'}
-                onChange={e => {
-                  if (e.target.value === 'CUSTOM') {
-                    onOpenCustomCurrency?.();
-                  } else {
-                    const match = SUPPORTED_CURRENCIES.find(c => c.code === e.target.value);
-                    if (match) onCurrencyChange(match);
-                  }
-                }}
-                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
-              >
-                {SUPPORTED_CURRENCIES.map(c => (
-                  <option key={c.code} value={c.code} className="dark:bg-slate-800">
-                    {c.code === 'CUSTOM' && !SUPPORTED_CURRENCIES.some(s => s.code === selectedCurrency.code)
-                      ? `${selectedCurrency.name} (${selectedCurrency.symbol})`
-                      : c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Data Management & Reset */}
-          <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200">
-              Data Management & Persistence
-            </label>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-              <div>
-                <span className="text-xs font-medium text-slate-900 dark:text-white block">
-                  Local Storage Dataset ({transactionCount} active records)
-                </span>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Transactions, custom archetypes, and ledger edits are automatically persisted.
-                </span>
+              <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                <Settings className="w-5 h-5" />
               </div>
-
-              {confirmReset ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onResetData();
-                      setConfirmReset(false);
-                    }}
-                    className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors"
-                  >
-                    Confirm Reset
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmReset(false)}
-                    className="px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirmReset(true)}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg transition-colors whitespace-nowrap shadow-2xs"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset to Sample Data</span>
-                </button>
-              )}
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                  Application Branding &amp; Settings
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Admin only · Customize app name, icon badge, default currency, and local data persistence.
+                </p>
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={onLockOwner}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors self-start sm:self-auto whitespace-nowrap"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Lock (User View)</span>
+            </button>
           </div>
 
-          {savedToast && (
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-900 dark:text-emerald-200 flex items-center gap-2 animate-in fade-in">
-              <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>Branding settings saved successfully!</span>
+          <form onSubmit={handleSaveBranding} className="space-y-6">
+            {/* App Name Setting */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200">
+                Application Name (Wordmark)
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={e => setNameInput(e.target.value)}
+                  placeholder="e.g., Asetech Bookkeeping"
+                  className="flex-1 px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-slate-100"
+                  maxLength={40}
+                />
+                <button
+                  type="submit"
+                  disabled={isSavingBranding}
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-slate-900 dark:bg-slate-100 dark:text-slate-900 rounded-lg hover:bg-slate-800 dark:hover:bg-white disabled:opacity-50 transition-colors shadow-2xs whitespace-nowrap"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{isSavingBranding ? 'Saving...' : 'Save Branding'}</span>
+                </button>
+              </div>
             </div>
-          )}
-        </form>
-      </div>
+
+            {/* App Icon / Badge Setting */}
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200">
+                Application Icon / Badge
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                {AVAILABLE_ICONS.map(ic => {
+                  const isSelected = iconInput === ic;
+                  return (
+                    <button
+                      key={ic}
+                      type="button"
+                      disabled={isSavingBranding}
+                      onClick={() => {
+                        setIconInput(ic);
+                        persistBranding(nameInput, ic);
+                      }}
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold transition-all disabled:opacity-50 ${
+                        isSelected
+                          ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm ring-2 ring-slate-900 dark:ring-slate-100'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      {ic}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Default Currency */}
+            <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200">
+                Primary Financial Currency
+              </label>
+              <div className="max-w-xs space-y-2">
+                <select
+                  value={SUPPORTED_CURRENCIES.some(c => c.code === selectedCurrency.code) ? selectedCurrency.code : 'CUSTOM'}
+                  onChange={e => {
+                    if (e.target.value === 'CUSTOM') {
+                      onOpenCustomCurrency?.();
+                    } else {
+                      const match = SUPPORTED_CURRENCIES.find(c => c.code === e.target.value);
+                      if (match) onCurrencyChange(match);
+                    }
+                  }}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
+                >
+                  {SUPPORTED_CURRENCIES.map(c => (
+                    <option key={c.code} value={c.code} className="dark:bg-slate-800">
+                      {c.code === 'CUSTOM' && !SUPPORTED_CURRENCIES.some(s => s.code === selectedCurrency.code)
+                        ? `${selectedCurrency.name} (${selectedCurrency.symbol})`
+                        : c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Data Management & Reset */}
+            <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200">
+                Data Management &amp; Persistence
+              </label>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                <div>
+                  <span className="text-xs font-medium text-slate-900 dark:text-white block">
+                    Local Storage Dataset ({transactionCount} active records)
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Transactions, custom archetypes, and ledger edits are automatically persisted.
+                  </span>
+                </div>
+
+                {confirmReset ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onResetData();
+                        setConfirmReset(false);
+                      }}
+                      className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors"
+                    >
+                      Confirm Reset
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmReset(false)}
+                      className="px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmReset(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg transition-colors whitespace-nowrap shadow-2xs"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset to Sample Data</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {brandingError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-800 dark:text-rose-200 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{brandingError}</span>
+              </div>
+            )}
+
+            {savedToast && (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-900 dark:text-emerald-200 flex items-center gap-2 animate-in fade-in">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Branding settings saved and published!</span>
+              </div>
+            )}
+          </form>
+        </div>
+      )}
 
       {/* Owner-Only Restricted App Logo Image Upload (Not accessible to clients) */}
       <OwnerLogoControl
